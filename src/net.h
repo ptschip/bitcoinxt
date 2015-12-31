@@ -31,6 +31,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
 #include <boost/signals2/signal.hpp>
+#include <primitives/block.h>
 
 class CAddrMan;
 class CBlockIndex;
@@ -294,6 +295,14 @@ public:
     CBloomFilter* pfilter;
     int nRefCount;
     NodeId id;
+
+    // If we've received a thin block from this peer, it's stored here until we have enough data to complete it.
+    CBlock thinBlock;
+    std::vector<uint256> thinBlockHashes;
+    int thinBlockWaitingForTxns;   // if -1 then not currently waiting
+    std::map<uint256, uint64_t> mapThinBlocksInFlight; // map of the hashes of thin blocks in flight with the time they were requested.
+    std::map<uint256, CTransaction> mapThinBlockTxEvictionCache; // map of transactions that were evicted between requesting and receiving a thinblock
+
 protected:
 
     // Denial-of-service detection/prevention
@@ -639,6 +648,8 @@ public:
 class CTransaction;
 void RelayTransaction(const CTransaction& tx);
 void RelayTransaction(const CTransaction& tx, const CDataStream& ss);
+
+bool FindTransactionInRelayMap(uint256 hash, CTransaction &out);
 
 /** Access to the (IP) address database (peers.dat) */
 class CAddrDB

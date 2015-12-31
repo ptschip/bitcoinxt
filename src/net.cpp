@@ -97,6 +97,8 @@ CCriticalSection cs_setservAddNodeAddresses;
 
 vector<std::string> vAddedNodes;
 CCriticalSection cs_vAddedNodes;
+vector<std::string> vAddedThinblockNodes;
+CCriticalSection cs_vAddedThinblockNodes;
 
 NodeId nLastNodeId = 0;
 CCriticalSection cs_nLastNodeId;
@@ -1282,11 +1284,22 @@ void static ProcessOneShot()
 void ThreadOpenConnections()
 {
     // Connect to specific addresses
-    if (mapArgs.count("-connect") && mapMultiArgs["-connect"].size() > 0)
+    if ((mapArgs.count("-connect-thinblock") && mapMultiArgs["-connect-thinblock"].size() > 0) ||
+        (mapArgs.count("-connect") && mapMultiArgs["-connect"].size() > 0))
+
     {
         for (int64_t nLoop = 0;; nLoop++)
         {
             ProcessOneShot();
+            BOOST_FOREACH(string strAddr, mapMultiArgs["-connect-thinblock"])
+            {
+                CAddress addr;
+                OpenNetworkConnection(addr, NULL, strAddr.c_str());
+                for (int i = 0; i < 10 && i < nLoop; i++)
+                {
+                    MilliSleep(500);
+                }
+            }
             BOOST_FOREACH(string strAddr, mapMultiArgs["-connect"])
             {
                 CAddress addr;
@@ -1299,6 +1312,7 @@ void ThreadOpenConnections()
             MilliSleep(500);
         }
     }
+
 
     // Initiate network connections
     int64_t nStart = GetTime();
@@ -1849,6 +1863,17 @@ void RelayTransaction(const CTransaction& tx, const CDataStream& ss)
     }
 }
 
+bool FindTransactionInRelayMap(uint256 hash, CTransaction &out) {
+    LOCK(cs_mapRelay);
+    CInv inv(MSG_TX, hash);
+    map<CInv, CDataStream>::iterator mi = mapRelay.find(inv);
+    if (mi != mapRelay.end()) {
+        (*mi).second >> out;
+        return true;
+    }
+    return false;
+}
+
 void CNode::RecordBytesRecv(uint64_t bytes)
 {
     LOCK(cs_totalBytesRecv);
@@ -2033,6 +2058,7 @@ CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fIn
     fWhitelisted = false;
     fOneShot = false;
     fClient = false; // set by version message
+    thinBlockWaitingForTxns = -1;
     fInbound = fInboundIn;
     fNetworkNode = false;
     fSuccessfullyConnected = false;

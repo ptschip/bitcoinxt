@@ -117,7 +117,6 @@ public:
     // disk and network only
     unsigned int nTime;
 };
-
 /** inv message data */
 class CInv
 {
@@ -153,6 +152,8 @@ enum {
     // Nodes may always request a MSG_FILTERED_BLOCK in a getdata, however,
     // MSG_FILTERED_BLOCK should not appear in any invs except as a part of getdata.
     MSG_FILTERED_BLOCK,
+    // A thin block contains All the hashes to the transactions in a block
+    // and also provides the missing transactions that are needed at the other end to reconstruct the block
+    MSG_THINBLOCK,
 };
-
 #endif // BITCOIN_PROTOCOL_H
