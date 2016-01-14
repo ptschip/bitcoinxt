@@ -97,8 +97,6 @@ CCriticalSection cs_setservAddNodeAddresses;
 
 vector<std::string> vAddedNodes;
 CCriticalSection cs_vAddedNodes;
-vector<std::string> vAddedThinblockNodes;
-CCriticalSection cs_vAddedThinblockNodes;
 
 NodeId nLastNodeId = 0;
 CCriticalSection cs_nLastNodeId;
@@ -1300,6 +1298,7 @@ void ThreadOpenConnections()
                     MilliSleep(500);
                 }
             }
+
             BOOST_FOREACH(string strAddr, mapMultiArgs["-connect"])
             {
                 CAddress addr;

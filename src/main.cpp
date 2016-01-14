@@ -229,9 +229,7 @@ bool IsStealthMode() {
 
 bool HaveThinblockNodeConnections()
 {
-    std::vector<std::string> vThinblockNodes;
-    vThinblockNodes = mapMultiArgs["-connect-thinblock"];
-    BOOST_FOREACH(string& strAddNode, vThinblockNodes) {
+    BOOST_FOREACH(string& strAddNode, mapMultiArgs["-connect-thinblock"]) {
         if(FindNode(strAddNode)) {
             return true;
         }
@@ -4422,6 +4420,16 @@ bool ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, int64_t
         CAddress addrFrom;
         uint64_t nNonce = 1;
         vRecv >> pfrom->nVersion >> pfrom->nServices >> nTime >> addrMe;
+
+        // Check that a nodes pointed to with connect-thinblock actually supports thinblocks
+        BOOST_FOREACH(string& strAddr, mapMultiArgs["-connect-thinblock"]) {
+            if(CNode* pnode = FindNode(strAddr)) {
+                if(pnode->nVersion < THINBLOCKS_VERSION && pnode->nVersion > 0) {
+                    LogPrintf("ERROR: You are trying to use connect-thinblocks but to a node that does not support it - Protocol Version: %d\n" , pnode->nVersion);
+                }
+            }
+        }
+
         if (pfrom->nVersion < MIN_PEER_PROTO_VERSION)
         {
             // disconnect from peers older than this proto version
